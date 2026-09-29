@@ -20,6 +20,10 @@
 # production
 /build
 
+# cloudflare worker
+/dist/
+cf/.wrangler/
+
 # misc
 .DS_Store
 *.pem

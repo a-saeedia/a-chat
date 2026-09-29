@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Build / generated artifacts (gitignored, not source):
+    ".vercel/**",
+    "dist/**",
+    "app/generated/**",
+    "cf/.wrangler/**",
   ]),
 ]);
 

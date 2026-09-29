@@ -11,7 +11,7 @@ const geist = localFont({
   display: "swap",
   weight: "100 900",
 });
-const GITHUB_URL = "https://github.com/a-saeedia/openreply";
+const GITHUB_URL = "https://github.com/a-saeedia/a-chat";
 const SETUP_DOCS_URL = `${GITHUB_URL}/blob/main/docs/setup.md`;
 const ZERNIO_DOCS_URL = `${GITHUB_URL}/blob/main/docs/zernio.md`;
 
@@ -27,7 +27,7 @@ const githubIconPath =
 
 async function getGitHubStars(): Promise<number | null> {
   try {
-    const res = await fetch("https://api.github.com/repos/a-saeedia/openreply", {
+    const res = await fetch("https://api.github.com/repos/a-saeedia/a-chat", {
       headers: { Accept: "application/vnd.github+json" },
       next: { revalidate: 3600 },
     });

@@ -4,7 +4,7 @@ import { getCampaignTemplate } from "@/lib/templates/campaign-templates";
 import { DemoNotice } from "@/components/demo-notice";
 import { isPublicDemoHost } from "@/lib/env";
 
-const GITHUB_URL = "https://github.com/a-saeedia/openreply";
+const GITHUB_URL = "https://github.com/a-saeedia/a-chat";
 const SETUP_DOCS_URL = `${GITHUB_URL}/blob/main/docs/setup.md`;
 
 export async function generateMetadata() {

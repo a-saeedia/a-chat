@@ -6,7 +6,7 @@ import { DEMO_HOST } from "@/lib/env";
 
 const DISMISS_KEY = "achat:demo-notice-dismissed";
 const SETUP_DOCS_URL =
-  "https://github.com/a-saeedia/openreply/blob/main/docs/setup.md";
+  "https://github.com/a-saeedia/a-chat/blob/main/docs/setup.md";
 
 /// Module-level so both variants agree, and so dismissing survives a
 /// client-side navigation between the landing page and the login page.

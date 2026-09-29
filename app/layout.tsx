@@ -2,7 +2,19 @@ import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
+// Relative canonicals/openGraph URLs on the pages below need an absolute
+// origin. Read NEXTAUTH_URL directly (not lib/env.ts, which throws when the
+// full env is absent) and fall back to localhost so a build never fails.
+function resolveMetadataBase(): URL {
+  try {
+    return new URL(process.env.NEXTAUTH_URL ?? "");
+  } catch {
+    return new URL("http://localhost:3000");
+  }
+}
+
 export const metadata: Metadata = {
+  metadataBase: resolveMetadataBase(),
   title: "A Chat - Open source Instagram comment-to-DM automation",
   description:
     "A free, self-hosted ManyChat alternative. Send an Instagram DM automatically when someone comments a keyword on your post or reel, using the official Meta API.",

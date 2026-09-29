@@ -15,6 +15,40 @@ interface HealthCheck {
   detail?: string;
 }
 
+// A health check that hangs is worse than one that fails: the route never
+// responds, the monitor sees a timeout it may not alert on, and the endpoint
+// reports nothing at all about a dependency that is plainly broken.
+//
+// `getRedisConnection()` sets `maxRetriesPerRequest: null` because BullMQ
+// requires it, so an unreachable Redis makes `ping()` retry forever and never
+// settle. The same is true of the queue's `getJobCounts`. Both are raced
+// against this budget so a dead dependency surfaces as an `error` check in a
+// bounded time instead of an unbounded wait.
+const CHECK_TIMEOUT_MS = Number(process.env.HEALTH_CHECK_TIMEOUT_MS ?? 5000);
+
+function withTimeout<T>(
+  promise: Promise<T>,
+  label: string,
+  ms = CHECK_TIMEOUT_MS
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`${label} check timed out after ${ms}ms`)),
+      ms
+    );
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
+
 async function checkDatabase(): Promise<HealthCheck> {
   try {
     await prisma.$queryRaw`SELECT 1`;
@@ -29,7 +63,10 @@ async function checkDatabase(): Promise<HealthCheck> {
 
 async function checkRedis(): Promise<HealthCheck> {
   try {
-    const pong = await getRedisConnection().ping();
+    const pong = await withTimeout(
+      getRedisConnection().ping(),
+      "Redis"
+    );
     return { status: pong === "PONG" ? "ok" : "error", detail: pong };
   } catch (error) {
     return {
@@ -56,11 +93,9 @@ const STUCK_QUEUE_MIN_WAITING = Number(
 
 async function checkQueue(): Promise<HealthCheck & { counts?: unknown }> {
   try {
-    const counts = await getDMQueue().getJobCounts(
-      "waiting",
-      "active",
-      "delayed",
-      "failed"
+    const counts = await withTimeout(
+      getDMQueue().getJobCounts("waiting", "active", "delayed", "failed"),
+      "Queue"
     );
     const waiting = counts.waiting ?? 0;
     const active = counts.active ?? 0;
@@ -85,7 +120,10 @@ export async function GET() {
     checkDatabase(),
     checkRedis(),
     checkQueue(),
-    getWorkerHealth().catch((error) => ({
+    // `getWorkerHealth` reads the heartbeat key from the same Redis connection,
+    // so it needs the same bound as the checks above or it alone would pin the
+    // whole `Promise.all` open on an unreachable Redis.
+    withTimeout(getWorkerHealth(), "Worker").catch((error) => ({
       healthy: false,
       heartbeat: null,
       ageMs: null,

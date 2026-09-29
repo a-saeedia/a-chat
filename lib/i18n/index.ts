@@ -1,6 +1,6 @@
 import zhTW from "./zh-TW.json";
 
-export const LOCALE_COOKIE = "openreply-locale";
+export const LOCALE_COOKIE = "achat-locale";
 export type Locale = "en" | "zh-TW";
 export type MessageKey = keyof typeof zhTW;
 

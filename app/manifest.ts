@@ -6,8 +6,8 @@ import type { MetadataRoute } from "next";
 // a phone practical.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "OpenReply",
-    short_name: "OpenReply",
+    name: "A Chat",
+    short_name: "A Chat",
     description: "Instagram comment-to-DM automation",
     start_url: "/overview",
     display: "standalone",

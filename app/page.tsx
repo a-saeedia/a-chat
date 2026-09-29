@@ -11,7 +11,7 @@ const geist = localFont({
   display: "swap",
   weight: "100 900",
 });
-const GITHUB_URL = "https://github.com/diwenne/openreply";
+const GITHUB_URL = "https://github.com/a-saeedia/openreply";
 const SETUP_DOCS_URL = `${GITHUB_URL}/blob/main/docs/setup.md`;
 const ZERNIO_DOCS_URL = `${GITHUB_URL}/blob/main/docs/zernio.md`;
 
@@ -27,7 +27,7 @@ const githubIconPath =
 
 async function getGitHubStars(): Promise<number | null> {
   try {
-    const res = await fetch("https://api.github.com/repos/diwenne/openreply", {
+    const res = await fetch("https://api.github.com/repos/a-saeedia/openreply", {
       headers: { Accept: "application/vnd.github+json" },
       next: { revalidate: 3600 },
     });
@@ -42,7 +42,7 @@ async function getGitHubStars(): Promise<number | null> {
 }
 
 export const metadata: Metadata = {
-  title: "OpenReply - Open source Instagram comment-to-DM automation",
+  title: "A Chat - Open source Instagram comment-to-DM automation",
   description:
     "A free, self-hosted ManyChat alternative. Turn Instagram keyword comments into automatic private replies. Connect through your own Meta app or optional paid provider Zernio.",
 };
@@ -74,8 +74,8 @@ function ReplyPreview() {
       aria-label="Example campaign: a GUIDE comment triggers a private reply with a guide link"
     >
       <div className="or-preview-top">
-        <span className="or-wordmark">
-          OpenReply<span aria-hidden="true">↗</span>
+        <span className="ac-wordmark">
+          A Chat<span aria-hidden="true">↗</span>
         </span>
         <span className="or-mono">Campaign preview</span>
       </div>
@@ -147,7 +147,7 @@ const steps = [
     "Pick a post or reel, add keywords, and write the private reply. Add a public reply or tracked link buttons if you need them.",
   ],
   [
-    "OpenReply handles the rest",
+    "A Chat handles the rest",
     "Incoming events trigger your campaigns. A background worker queues, rate-limits, and logs each send, with retries and comment reconciliation.",
   ],
 ];
@@ -162,7 +162,7 @@ const features = [
   ],
   [
     "Inbox",
-    "Read conversations and reply from OpenReply, within Instagram’s messaging window.",
+    "Read conversations and reply from A Chat, within Instagram’s messaging window.",
   ],
   [
     "Delivery logs",
@@ -180,8 +180,8 @@ export default async function Home() {
       <DemoNotice variant="banner" />
       <header className="or-header">
         <div className="or-container or-nav">
-          <a className="or-wordmark" href="#top" aria-label="OpenReply home">
-            OpenReply
+          <a className="ac-wordmark" href="#top" aria-label="A Chat home">
+            A Chat
           </a>
           <nav aria-label="Main navigation">
             <a href="#how">How it works</a>
@@ -191,7 +191,7 @@ export default async function Home() {
               href={GITHUB_URL}
               target="_blank"
               rel="noreferrer"
-              aria-label="View OpenReply on GitHub"
+              aria-label="View A Chat on GitHub"
             >
               <svg viewBox="0 0 16 16" aria-hidden="true">
                 <path d={githubIconPath} />
@@ -218,12 +218,12 @@ export default async function Home() {
               into private replies.
             </h1>
             <p className="or-lead">
-              Someone comments a keyword on your post or reel, OpenReply sends
+              Someone comments a keyword on your post or reel, A Chat sends
               them a DM automatically. Free, open source, self-hosted.
             </p>
             <div className="or-actions">
               <a className="or-button or-button-primary" href={SETUP_DOCS_URL}>
-                Set up OpenReply <span aria-hidden="true">↗</span>
+                Set up A Chat <span aria-hidden="true">↗</span>
               </a>
               <a className="or-text-link" href="#how">
                 See how it works <span aria-hidden="true">↓</span>
@@ -285,7 +285,7 @@ export default async function Home() {
                   <br />A system you can inspect.
                 </h2>
                 <p>
-                  OpenReply owns the campaigns, keyword matching, queues,
+                  A Chat owns the campaigns, keyword matching, queues,
                   retries, logs, and inbox. Your connection provider handles the
                   Instagram API.
                 </p>
@@ -313,10 +313,10 @@ export default async function Home() {
             </section>
             <section id="setup" className="or-section">
               <div className="or-section-intro">
-                <h2>Self-host OpenReply. Choose your connection.</h2>
+                <h2>Self-host A Chat. Choose your connection.</h2>
                 <p>
                   Both options need your own web app, background worker,
-                  PostgreSQL, and Redis. OpenReply is free software; hosting and
+                  PostgreSQL, and Redis. A Chat is free software; hosting and
                   provider costs are separate.
                 </p>
               </div>
@@ -332,8 +332,8 @@ export default async function Home() {
                     Settings, choose a profile, and connect your account.
                   </p>
                   <ul>
-                    <li>No Meta app secrets to configure in OpenReply</li>
-                    <li>OpenReply registers the webhook for you</li>
+                    <li>No Meta app secrets to configure in A Chat</li>
+                    <li>A Chat registers the webhook for you</li>
                     <li>Optional paid service and project sponsor</li>
                   </ul>
                   <a
@@ -384,9 +384,9 @@ export default async function Home() {
               </div>
               <div>
                 <details>
-                  <summary>Is OpenReply free?</summary>
+                  <summary>Is A Chat free?</summary>
                   <p>
-                    Yes. OpenReply is MIT-licensed software with no software
+                    Yes. A Chat is MIT-licensed software with no software
                     subscription or seat limits. You pay for your own
                     infrastructure and any optional services you choose,
                     including Zernio.
@@ -406,7 +406,7 @@ export default async function Home() {
                   <p>
                     No. Zernio is an optional paid connection provider and
                     sponsor. It can spare you setting up your own Meta app,
-                    while OpenReply still runs on your infrastructure. The
+                    while A Chat still runs on your infrastructure. The
                     direct Meta path stays available.{" "}
                     <a
                       href={zernioLink({ placement: "landing-faq" })}
@@ -449,7 +449,7 @@ export default async function Home() {
           <p>Clone it, connect Instagram, and write your first reply.</p>
           <div className="or-actions">
             <a className="or-button or-button-primary" href={SETUP_DOCS_URL}>
-              Set up OpenReply <span aria-hidden="true">↗</span>
+              Set up A Chat <span aria-hidden="true">↗</span>
             </a>
             <a className="or-text-link" href={GITHUB_URL}>
               Star on GitHub <span aria-hidden="true">↗</span>
@@ -461,8 +461,8 @@ export default async function Home() {
         <div className="or-container">
           <div className="or-footer-top">
             <div>
-              <Link href="/" className="or-wordmark">
-                OpenReply<span aria-hidden="true">↗</span>
+              <Link href="/" className="ac-wordmark">
+                A Chat<span aria-hidden="true">↗</span>
               </Link>
               <p>Open source Instagram comment-to-DM automation.</p>
             </div>

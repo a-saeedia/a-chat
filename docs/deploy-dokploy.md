@@ -1,10 +1,10 @@
 # Self-Hosting on Dokploy
 
-This guide covers deploying OpenReply on your own server using [Dokploy](https://dokploy.com), as an alternative to the Vercel + Railway setup covered in `docs/setup.md`. Running everything on your own Dokploy instance means no per-seat hosting fees and no usage caps — but there are a few gotchas specific to this setup worth knowing up front.
+This guide covers deploying A Chat on your own server using [Dokploy](https://dokploy.com), as an alternative to the Vercel + Railway setup covered in `docs/setup.md`. Running everything on your own Dokploy instance means no per-seat hosting fees and no usage caps — but there are a few gotchas specific to this setup worth knowing up front.
 
 ## Overview
 
-OpenReply needs four services running:
+A Chat needs four services running:
 - **Web app** — the Next.js dashboard, OAuth callback, and webhook receiver
 - **Worker** — a long-running Node process that sends the DMs (cannot run as a serverless function)
 - **Postgres**

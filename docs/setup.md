@@ -1,6 +1,6 @@
 # Setup
 
-Get OpenReply running end to end: choose your Instagram connection, deploy the web app and worker, configure the databases, and test a campaign. OpenReply is self-hosted with either provider.
+Get A Chat running end to end: choose your Instagram connection, deploy the web app and worker, configure the databases, and test a campaign. A Chat is self-hosted with either provider.
 
 If you use a coding assistant, start with [Set it up with an AI assistant](#set-it-up-with-an-ai-assistant). Its first decision is your provider, before any Meta app secrets.
 
@@ -8,7 +8,7 @@ If you use a coding assistant, start with [Set it up with an AI assistant](#set-
 
 | Connection | What you configure | Costs |
 | --- | --- | --- |
-| **[Zernio](zernio.md), recommended for simpler connection setup** | A Zernio API key in Settings, a profile, and an Instagram account. OpenReply registers the webhook. No own Meta app or Meta secrets required. | Optional paid provider, plus your hosting. Zernio sponsors OpenReply. |
+| **[Zernio](zernio.md), recommended for simpler connection setup** | A Zernio API key in Settings, a profile, and an Instagram account. A Chat registers the webhook. No own Meta app or Meta secrets required. | Optional paid provider, plus your hosting. Zernio sponsors A Chat. |
 | **[Your own Meta app](#the-meta-app)** | Your Meta app, Instagram Login, app secrets, webhook, and App Review where required. | Your hosting and any other services you use. No Zernio subscription. |
 
 Both use the official Instagram API and remain subject to Instagram’s policies, account requirements, permissions, rate limits, and messaging windows. Both need PostgreSQL, Redis, email delivery, and a running worker. Existing connections are not migrated automatically.
@@ -17,7 +17,7 @@ Learn about the optional sponsor at [Zernio](https://zernio.com/?utm_source=open
 
 ## How it is built
 
-OpenReply is two processes and two datastores.
+A Chat is two processes and two datastores.
 
 - Web app and API: Next.js. Serves the dashboard, the OAuth callback, and the incoming webhook. Runs well on Vercel.
 - Worker: a long-running Node process (`npm run worker`) that consumes the send queue and runs the polling reconciler. It cannot run on Vercel, because serverless functions are short-lived and a queue consumer has to stay up. Railway, Render, Fly, or any always-on box works.
@@ -89,7 +89,7 @@ DATABASE_URL="postgresql://...proxy.rlwy.net.../railway" npm run db:migrate
 
 Note on crons: Vercel's free plan allows each cron to run at most once per day. The repo's crons are set to daily for that reason. The comment polling reconciler does not use a Vercel cron; it runs inside the Railway worker on its own interval, so the free plan is not a constraint there.
 
-Optional custom domain: if you want `openreply.yoursite.com` instead of the Vercel URL, add it in Vercel under Domains and make it primary. Then update `NEXTAUTH_URL` and the two Meta URLs (Step 7 and Step 8 below) to the new domain, and update the worker's `NEXTAUTH_URL` too, or tracked links in DMs will point at the old domain.
+Optional custom domain: if you want `achat.yoursite.com` instead of the Vercel URL, add it in Vercel under Domains and make it primary. Then update `NEXTAUTH_URL` and the two Meta URLs (Step 7 and Step 8 below) to the new domain, and update the worker's `NEXTAUTH_URL` too, or tracked links in DMs will point at the old domain.
 
 ## Environment variables
 
@@ -130,7 +130,7 @@ Optional, for tuning the polling reconciler (defaults are fine to start):
 
 ## Connect through Zernio
 
-After deployment, sign in as a workspace owner or admin and follow [docs/zernio.md](zernio.md). Save an unrestricted read/write API key with Inbox access, select your existing Zernio profile, then import an Instagram account or connect a new one through Zernio. OpenReply creates its webhook automatically.
+After deployment, sign in as a workspace owner or admin and follow [docs/zernio.md](zernio.md). Save an unrestricted read/write API key with Inbox access, select your existing Zernio profile, then import an Instagram account or connect a new one through Zernio. A Chat creates its webhook automatically.
 
 You can skip the entire Meta app section below and continue at [Test it end to end](#test-it-end-to-end). No `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET`, `FACEBOOK_APP_SECRET`, or `WEBHOOK_VERIFY_TOKEN` is needed for this path.
 
@@ -147,7 +147,7 @@ Go to [developers.facebook.com/apps](https://developers.facebook.com/apps) and c
 - App type: Business.
 - Contact email: one you actually check.
 
-When it asks you to add a use case, filter to All, then choose Manage messaging and content on Instagram. Do not pick "Create and manage ads with Marketing API", and do not pick "Authenticate with Facebook Login". OpenReply uses Instagram Login. Picking the Facebook Login variant makes the OAuth flow fail later with a mismatched client error.
+When it asks you to add a use case, filter to All, then choose Manage messaging and content on Instagram. Do not pick "Create and manage ads with Marketing API", and do not pick "Authenticate with Facebook Login". A Chat uses Instagram Login. Picking the Facebook Login variant makes the OAuth flow fail later with a mismatched client error.
 
 If you accidentally added the Marketing API use case, remove it. It has its own heavy review requirements and can block publishing.
 
@@ -163,7 +163,7 @@ There are two app secrets and two app IDs, which is confusing. Here is what maps
 
 The Instagram app ID is not the same number as the Facebook App ID shown on the Basic settings page. Use the one under the Instagram product.
 
-OpenReply verifies webhook signatures against both `FACEBOOK_APP_SECRET` and `INSTAGRAM_APP_SECRET`, so you do not have to guess which one Meta signs with. Set both.
+A Chat verifies webhook signatures against both `FACEBOOK_APP_SECRET` and `INSTAGRAM_APP_SECRET`, so you do not have to guess which one Meta signs with. Set both.
 
 ### Step 6: Add your Instagram account as a tester, and accept the invite
 
@@ -192,7 +192,7 @@ https://your-app.vercel.app/api/instagram/callback
 
 No trailing slash. If this is missing or wrong, connecting an account fails with a redirect_uri mismatch. You can register more than one, which is useful if you change domains later; keep the old and new both listed.
 
-You do not need the "Embed URL" that Meta shows here. OpenReply builds its own login URL. Users connect by opening your app, going to Settings, and clicking Connect Instagram.
+You do not need the "Embed URL" that Meta shows here. A Chat builds its own login URL. Users connect by opening your app, going to Settings, and clicking Connect Instagram.
 
 ### Step 8: Configure the webhook
 
@@ -213,7 +213,7 @@ If your primary domain ever changes, update this callback URL to the new domain.
 
 Real comment webhooks are only delivered when the app is in Live state. In Development mode, only the console Test button delivers events. This is the single most common reason for "I set everything up and nothing happens."
 
-Go to the Publish item in the left sidebar. Set the privacy policy, terms of service, and data deletion URLs first, or it will not let you publish. OpenReply ships these pages, on your Vercel domain:
+Go to the Publish item in the left sidebar. Set the privacy policy, terms of service, and data deletion URLs first, or it will not let you publish. A Chat ships these pages, on your Vercel domain:
 
 ```
 https://your-app.vercel.app/privacy
@@ -241,7 +241,7 @@ Unsupported request - method type: get  [code=100, type=IGApiException]
 
 The fix for your own accounts is the same two-part dance as Step 6, once per account: invite the Instagram username under App roles, Roles, Instagram testers, then accept the invite inside Instagram under Edit profile, Apps and websites, Tester invites. For accounts you do not control, you need App Review — see [META_APP_REVIEW.md](../META_APP_REVIEW.md).
 
-### Migrating from ManyChat or another DM tool: give OpenReply control of conversations
+### Migrating from ManyChat or another DM tool: give A Chat control of conversations
 
 Do this whenever the Instagram account was ever connected to ManyChat or another comment-to-DM tool, even if you have cancelled it. Skip it and comments look fine, but every DM button tap fails.
 
@@ -256,22 +256,22 @@ Instagram lets any connected app send the one private reply to a comment, which 
 Fix it in Meta Business Suite, under Settings, Integrations, Conversation routing:
 
 1. Select the Instagram account and open the Partner apps tab. It lists every app connected to the account's messages. Remove any old DM tool from inside that tool, for example ManyChat's Settings, Instagram, Disconnect channel. These apps often do not appear under Instagram's Apps and websites or Facebook's Business integrations, so Partner apps is the place to check.
-2. Click Manage next to your OpenReply app and switch on both Access all conversations and Take control of conversations, then save.
+2. Click Manage next to your A Chat app and switch on both Access all conversations and Take control of conversations, then save.
 
 Tap the button again on a fresh comment. The follow-up DM should now send.
 
 ### The account ID trap (informational)
 
-You do not have to do anything here; OpenReply handles it. It is worth understanding because it is invisible when it goes wrong.
+You do not have to do anything here; A Chat handles it. It is worth understanding because it is invisible when it goes wrong.
 
-Meta's `/me` returns two IDs. The `id` field is app-scoped. The `user_id` field is the Instagram professional account ID. Webhooks put `user_id` in `entry.id`, and the messaging API keys off `user_id` too. OpenReply stores `user_id`, so a fresh connection matches correctly. If you upgraded from a very old build and an account was stored with the wrong ID, disconnect and reconnect it once.
+Meta's `/me` returns two IDs. The `id` field is app-scoped. The `user_id` field is the Instagram professional account ID. Webhooks put `user_id` in `entry.id`, and the messaging API keys off `user_id` too. A Chat stores `user_id`, so a fresh connection matches correctly. If you upgraded from a very old build and an account was stored with the wrong ID, disconnect and reconnect it once.
 
 ## Test it end to end
 
 1. Connect the account in Settings. For Zernio, complete the [provider setup](zernio.md). For direct Meta, make sure the account has accepted its tester invite (Step 6) and the app is published (Step 9).
-2. Confirm the account appears in OpenReply and `/api/health` reports a healthy worker.
+2. Confirm the account appears in A Chat and `/api/health` reports a healthy worker.
 3. Create a campaign on one of your posts with a keyword like `TEST`.
-4. From a different Instagram account, comment `TEST` on that post. It must be a different account, because OpenReply ignores your own comments on purpose.
+4. From a different Instagram account, comment `TEST` on that post. It must be a different account, because A Chat ignores your own comments on purpose.
 5. Watch for the DM. If nothing arrives, check the DM Logs page and `/api/health`.
 
 Hit `/api/health` any time. It reports the database, Redis, queue, and worker heartbeat. If `worker.healthy` is false, the worker is not running or cannot reach Redis, and no DM will send even though webhooks are being received.
@@ -294,10 +294,10 @@ Or install them natively (macOS):
 brew install postgresql@16 redis
 brew services start postgresql@16
 brew services start redis
-createdb openreply
+createdb achat
 ```
 
-Then set `DATABASE_URL` to match your local user, for example `postgresql://YOUR_USER@localhost:5432/openreply`.
+Then set `DATABASE_URL` to match your local user, for example `postgresql://YOUR_USER@localhost:5432/achat`.
 
 Run the two processes in separate terminals:
 
@@ -317,7 +317,7 @@ ngrok http 3000
 Open a clone of this repository in your coding assistant and paste the prompt below. Keep real credentials in your deployment’s secret settings or local `.env`, not committed files.
 
 ```text
-You are helping me self-host OpenReply in this repository. Read README.md,
+You are helping me self-host A Chat in this repository. Read README.md,
 docs/setup.md, and docs/zernio.md before changing anything.
 
 My goal: <my own Instagram account, a team workspace, or another use case>.
@@ -327,7 +327,7 @@ Work through this order. Ask for decisions or actions only I can supply:
 1. Choose the Instagram provider BEFORE asking for Meta secrets or walking me
    through Meta App Review. Recommend Zernio if I want to avoid creating and
    reviewing my own Meta app. Clearly disclose that it is an optional PAID
-   service and OpenReply sponsor, that OpenReply remains self-hosted, and that
+   service and A Chat sponsor, that A Chat remains self-hosted, and that
    direct Meta is still supported. Explain the feature limits in docs/zernio.md.
    Ask which provider I want. Do not silently migrate existing accounts.
 
@@ -345,10 +345,10 @@ Work through this order. Ask for decisions or actions only I can supply:
 5. Connect the chosen provider:
    - Zernio: skip all Meta app secrets and own-app review steps. In Settings,
      have the workspace owner/admin save an unrestricted read/write API key
-     with Inbox access, select an existing profile, and let OpenReply register
+     with Inbox access, select an existing profile, and let A Chat register
      its webhook. Select an existing Instagram account or use the Zernio
      connection flow to add one, then import it. Keep campaign automation in
-     OpenReply; do not create a duplicate campaign in Zernio.
+     A Chat; do not create a duplicate campaign in Zernio.
    - Direct Meta: follow the Meta app section in docs/setup.md. Ask for Meta
      secrets only on this path. Configure the redirect, webhook, tester roles,
      and publishing; explain Advanced Access/App Review where required.
@@ -371,7 +371,7 @@ By the end, `/api/health` returns `status: ok` with `worker.healthy: true`, and 
 
 ## Letting other people use your instance
 
-**Direct Meta:** Everything above is enough to run OpenReply for your own accounts, or a handful of accounts you add as testers. No App Review needed.
+**Direct Meta:** Everything above is enough to run A Chat for your own accounts, or a handful of accounts you add as testers. No App Review needed.
 
 For a stranger to connect through your own Meta app, Meta requires App Review granting Advanced Access on the messaging and comments permissions. That means:
 

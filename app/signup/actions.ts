@@ -1,6 +1,7 @@
 "use server";
 
 import { AuthError } from "next-auth";
+import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/db/client";
 import { CREDENTIAL_PROVIDER_ID, signIn } from "@/lib/auth";
 import { EMAIL_RE, sanitizeRedirect } from "@/lib/auth-forms";
@@ -46,35 +47,43 @@ export async function signUpWithPassword(
     return { error: t("Sign-up is not allowed for this email address.") };
   }
 
+  // Every existing row counts as taken, including a passwordless one left
+  // behind by the removed magic-link provider. Possession of an address is
+  // never proof of controlling it, so letting a sign-up claim such a row would
+  // hand the account, its workspace and its Instagram connection to anyone who
+  // knew the address. Those accounts are migrated deliberately by an operator
+  // with `npm run user:set-password` instead of being won in a public form.
   const existing = await prisma.user.findUnique({
     where: { email },
-    select: { id: true, passwordHash: true },
+    select: { id: true },
   });
 
-  // Only an account that already has a password is genuinely taken. One
-  // without a hash cannot be signed into at all, so this email owns it and is
-  // allowed to claim it rather than be locked out by a row it never set a
-  // password on.
-  if (existing?.passwordHash) {
+  if (existing) {
     return { error: t("An account with this email already exists. Sign in instead.") };
   }
 
   const passwordHash = await hashPassword(password);
 
-  const userId = existing
-    ? (
-        await prisma.user.update({
-          where: { id: existing.id },
-          data: { name, passwordHash },
-          select: { id: true },
-        })
-      ).id
-    : (
-        await prisma.user.create({
-          data: { name, email, passwordHash },
-          select: { id: true },
-        })
-      ).id;
+  let userId: string;
+  try {
+    userId = (
+      await prisma.user.create({
+        data: { name, email, passwordHash },
+        select: { id: true },
+      })
+    ).id;
+  } catch (error) {
+    // Two sign-ups for one address can both pass the check above, since the row
+    // does not exist yet in either. The unique index settles it, and the loser
+    // is told the address is taken rather than shown a crash.
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return { error: t("An account with this email already exists. Sign in instead.") };
+    }
+    throw error;
+  }
 
   // Every user needs a workspace, and the Credentials provider fires no
   // createUser event to make one, so it is made explicitly here.

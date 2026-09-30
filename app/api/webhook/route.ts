@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/client";
-import {
-  parseCommentEvents,
-  verifyWebhookSignature,
-} from "@/lib/meta/webhook";
+import { verifyWebhookSignature, type WebhookPayload } from "@/lib/meta/webhook";
 import { processInstagramWebhook } from "@/lib/queue/process-webhook";
 
 
@@ -62,7 +59,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    await processInstagramWebhook({ payload: payload as Parameters<typeof parseCommentEvents>[0], provider: 'META' });
+    await processInstagramWebhook({ payload: payload as WebhookPayload, provider: 'META' });
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ success: false, error: 'Webhook processing failed' }, { status: 500 });

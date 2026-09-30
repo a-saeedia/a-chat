@@ -107,14 +107,55 @@ export interface WebhookReadEvent {
   watermark?: number;
 }
 
-interface WebhookPayload {
+export interface WebhookPayload {
   object: string;
   entry: WebhookEntry[];
+}
+
+/**
+ * Webhook `object` values that can carry Instagram Messaging events.
+ *
+ * An Instagram-Login app delivers DMs, postbacks and read receipts under
+ * `instagram`, keyed by the Instagram id. A Facebook-Login app — which is how a
+ * Page-linked Instagram account gets connected — delivers the same events under
+ * `page`, keyed by the Page id instead. Comments are only ever delivered under
+ * `instagram`, so `parseCommentEvents` stays stricter than this.
+ */
+const MESSAGING_WEBHOOK_OBJECTS = new Set(["instagram", "page"]);
+
+export function isMessagingWebhookObject(object: unknown): boolean {
+  return typeof object === "string" && MESSAGING_WEBHOOK_OBJECTS.has(object);
+}
+
+/**
+ * Rewrite every entry id to the Instagram account id the delivery belongs to,
+ * dropping entries that resolve to no connected account.
+ *
+ * A Page-linked account arrives under two different ids: the Page id in
+ * `entry[].id` when `object` is `page`, and its own Instagram id otherwise.
+ * Automations, BullMQ job ids and Graph targets are all keyed by the Instagram
+ * id, so normalizing here keeps one delivery path instead of leaking a Page id
+ * into a field every downstream lookup treats as an Instagram id.
+ */
+export function remapEntryIds(
+  payload: WebhookPayload,
+  resolve: (entryId: string) => string | null
+): WebhookPayload {
+  const entry: WebhookEntry[] = [];
+  for (const item of payload.entry ?? []) {
+    const instagramId = resolve(item.id);
+    if (!instagramId) continue;
+    entry.push({ ...item, id: instagramId });
+  }
+  return { ...payload, entry };
 }
 
 export function parseCommentEvents(payload: WebhookPayload): WebhookCommentEvent[] {
   const events: WebhookCommentEvent[] = [];
 
+  // Comments are only ever delivered under the `instagram` object. A `page`
+  // payload carries no `changes` at all, so treating it as comment traffic
+  // would only ever invent events out of an empty shape.
   if (payload.object !== "instagram") {
     return events;
   }
@@ -170,7 +211,7 @@ export function parsePostbackEvents(
 ): WebhookPostbackEvent[] {
   const events: WebhookPostbackEvent[] = [];
 
-  if (payload.object !== "instagram") return events;
+  if (!isMessagingWebhookObject(payload.object)) return events;
 
   for (const entry of payload.entry ?? []) {
     for (const messaging of entry.messaging ?? []) {
@@ -209,7 +250,7 @@ export function parseMessageEvents(
 ): WebhookMessageEvent[] {
   const events: WebhookMessageEvent[] = [];
 
-  if (payload.object !== "instagram") return events;
+  if (!isMessagingWebhookObject(payload.object)) return events;
 
   for (const entry of payload.entry ?? []) {
     for (const messaging of entry.messaging ?? []) {
@@ -248,7 +289,7 @@ export function parseMessageEvents(
 export function parseReadEvents(payload: WebhookPayload): WebhookReadEvent[] {
   const events: WebhookReadEvent[] = [];
 
-  if (payload.object !== "instagram") return events;
+  if (!isMessagingWebhookObject(payload.object)) return events;
 
   for (const entry of payload.entry ?? []) {
     for (const messaging of entry.messaging ?? []) {

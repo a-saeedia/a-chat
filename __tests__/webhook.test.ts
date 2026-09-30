@@ -9,7 +9,9 @@ import {
   verifyWebhookSignature,
   parseCommentEvents,
   parseMessageEvents,
+  parsePostbackEvents,
   parseReadEvents,
+  remapEntryIds,
 } from "../lib/meta/webhook";
 import { createHmac } from "crypto";
 
@@ -445,10 +447,41 @@ describe("parseMessageEvents", () => {
     expect(parseMessageEvents(payload)).toHaveLength(0);
   });
 
-  it("should ignore non-instagram payloads", () => {
+  it("parses DMs from a Page payload, which a Facebook-Login app sends", () => {
+    // A Page-linked Instagram account is delivered under object "page" with the
+    // Page id in entry[].id. Rejecting this payload is what silently dropped
+    // every inbound DM for a connected Page.
     expect(
       parseMessageEvents({
         object: "page",
+        entry: [
+          {
+            id: "page_123",
+            time: 1,
+            messaging: [
+              {
+                sender: { id: "user_999" },
+                recipient: { id: "page_123" },
+                message: { mid: "mid_abc", text: "link" },
+              },
+            ],
+          },
+        ],
+      })
+    ).toEqual([
+      {
+        instagramAccountId: "page_123",
+        messageId: "mid_abc",
+        messageText: "link",
+        senderId: "user_999",
+      },
+    ]);
+  });
+
+  it("should ignore payloads from an unsupported object", () => {
+    expect(
+      parseMessageEvents({
+        object: "instagram_business_account",
         entry: [
           {
             id: "ig_456",
@@ -513,5 +546,148 @@ describe("parseReadEvents", () => {
     };
 
     expect(parseReadEvents(payload)).toHaveLength(0);
+  });
+
+  it("parses read receipts from a Page payload", () => {
+    expect(
+      parseReadEvents({
+        object: "page",
+        entry: [
+          {
+            id: "page_123",
+            time: 1234567890,
+            messaging: [
+              {
+                sender: { id: "commenter_999" },
+                recipient: { id: "page_123" },
+                read: { watermark: 1770000000000 },
+              },
+            ],
+          },
+        ],
+      })
+    ).toEqual([
+      {
+        instagramAccountId: "page_123",
+        userId: "commenter_999",
+        watermark: 1770000000000,
+      },
+    ]);
+  });
+});
+
+describe("parsePostbackEvents", () => {
+  it("parses button taps from a Page payload", () => {
+    expect(
+      parsePostbackEvents({
+        object: "page",
+        entry: [
+          {
+            id: "page_123",
+            time: 1,
+            messaging: [
+              {
+                sender: { id: "commenter_999" },
+                recipient: { id: "page_123" },
+                postback: { mid: "mid_abc", payload: "reveal:auto_1" },
+              },
+            ],
+          },
+        ],
+      })
+    ).toEqual([
+      {
+        instagramAccountId: "page_123",
+        userId: "commenter_999",
+        payload: "reveal:auto_1",
+        mid: "mid_abc",
+      },
+    ]);
+  });
+
+  it("ignores payloads from an unsupported object", () => {
+    expect(
+      parsePostbackEvents({
+        object: "instagram_business_account",
+        entry: [
+          {
+            id: "ig_456",
+            time: 1,
+            messaging: [
+              {
+                sender: { id: "commenter_999" },
+                postback: { payload: "reveal:auto_1" },
+              },
+            ],
+          },
+        ],
+      })
+    ).toHaveLength(0);
+  });
+});
+
+describe("remapEntryIds", () => {
+  it("rewrites a Page id to the Instagram id and keeps the rest of the entry", () => {
+    const result = remapEntryIds(
+      {
+        object: "page",
+        entry: [
+          {
+            id: "page_123",
+            time: 7,
+            messaging: [
+              { sender: { id: "user_1" }, message: { mid: "m1", text: "link" } },
+            ],
+          },
+        ],
+      },
+      (entryId) => (entryId === "page_123" ? "ig_456" : null)
+    );
+
+    expect(result.entry).toEqual([
+      {
+        id: "ig_456",
+        time: 7,
+        messaging: [
+          { sender: { id: "user_1" }, message: { mid: "m1", text: "link" } },
+        ],
+      },
+    ]);
+    expect(result.object).toBe("page");
+  });
+
+  it("drops entries that resolve to no connected account", () => {
+    const result = remapEntryIds(
+      {
+        object: "page",
+        entry: [
+          { id: "page_unknown", time: 1, messaging: [] },
+          { id: "page_known", time: 2, messaging: [] },
+        ],
+      },
+      (entryId) => (entryId === "page_known" ? "ig_456" : null)
+    );
+
+    expect(result.entry.map((e) => e.id)).toEqual(["ig_456"]);
+  });
+
+  it("lets a downstream parser see the Instagram id after remapping", () => {
+    const remapped = remapEntryIds(
+      {
+        object: "page",
+        entry: [
+          {
+            id: "page_123",
+            time: 1,
+            messaging: [
+              { sender: { id: "user_1" }, message: { mid: "m1", text: "link" } },
+            ],
+          },
+        ],
+      },
+      () => "ig_456"
+    );
+
+    expect(parseMessageEvents(remapped)[0]?.instagramAccountId).toBe("ig_456");
   });
 });

@@ -24,7 +24,7 @@ Paste these into the App Review request, adjusted to your wording.
 
 Record on your published app, real accounts, one take, about two to three minutes. Narrate each step.
 
-1. Sign in with an email magic link.
+1. Sign in with an email and a password.
 2. Go to Settings and click Connect Instagram. Show the consent screen with the permissions being granted.
 3. Create a campaign on a recent post with keyword `LINK`, a DM message, and save.
 4. On a second phone or account, comment `LINK` on that post.

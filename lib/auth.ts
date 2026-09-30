@@ -1,44 +1,80 @@
 import NextAuth, { type NextAuthConfig } from "next-auth";
-import Nodemailer from "next-auth/providers/nodemailer";
-import Resend from "next-auth/providers/resend";
+import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/db/client";
 import { ensureWorkspaceForUser, getPrimaryWorkspace } from "@/lib/workspace";
 import { isEmailAllowedToSignIn } from "@/lib/env";
+import { verifyPassword } from "@/lib/password";
 
 type AdapterPrismaClient = Parameters<typeof PrismaAdapter>[0];
 
-const emailFrom = process.env.EMAIL_FROM ?? "A Chat <login@example.com>";
-// Setting EMAIL_SERVER switches magic links to your own SMTP server, for
-// self-hosters who do not want a third-party mail service. Resend stays the
-// default, so an existing deployment is unaffected.
-const smtpServer = process.env.EMAIL_SERVER;
-
 /**
- * Provider id the login form has to sign in with. It differs per transport,
- * so it is derived here rather than hardcoded at the call site.
+ * Provider id the auth forms sign in with. Exported rather than hardcoded at
+ * each call site so the id lives in one place.
  */
-export const EMAIL_PROVIDER_ID = smtpServer ? "nodemailer" : "resend";
+export const CREDENTIAL_PROVIDER_ID = "credentials";
 
 export const authConfig = {
   adapter: PrismaAdapter(prisma as unknown as AdapterPrismaClient),
   providers: [
-    smtpServer
-      ? Nodemailer({ server: smtpServer, from: emailFrom })
-      : Resend({
-          apiKey: process.env.RESEND_API_KEY ?? "missing-resend-api-key",
-          from: emailFrom,
-        }),
+    Credentials({
+      id: CREDENTIAL_PROVIDER_ID,
+      name: "Email and password",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(raw) {
+        const email =
+          typeof raw?.email === "string" ? raw.email.trim().toLowerCase() : "";
+        const password = typeof raw?.password === "string" ? raw.password : "";
+        if (!email || !password) return null;
+
+        // Checked here as well as in the sign-up action: this is the last gate
+        // before a session exists, so it must not rely on the caller.
+        if (!isEmailAllowedToSignIn(email)) return null;
+
+        const user = await prisma.user.findUnique({
+          where: { email },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+            passwordHash: true,
+          },
+        });
+        if (!user) return null;
+
+        const valid = await verifyPassword(password, user.passwordHash);
+        if (!valid) return null;
+
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+        };
+      },
+    }),
   ],
   callbacks: {
-    // Runs before the magic link is sent, so a blocked address never receives
-    // one, and again when the link is verified.
+    // Belt and braces for providers that create a user before this runs.
     async signIn({ user }) {
       return isEmailAllowedToSignIn(user?.email);
     },
-    async session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id;
+    // Credentials sign-in cannot use the database session strategy, so the id
+    // rides in the JWT instead of an Session row. `user` is only present on
+    // the sign-in pass; every later pass keeps the id already in the token.
+    async jwt({ token, user }) {
+      if (user?.id) {
+        token.sub = user.id;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user && token.sub) {
+        session.user.id = token.sub;
       }
       return session;
     },
@@ -52,10 +88,14 @@ export const authConfig = {
   },
   pages: {
     signIn: "/login",
-    verifyRequest: "/verify-request",
+    error: "/login",
   },
   session: {
-    strategy: "database",
+    // Required for the Credentials provider: it has no adapter session to
+    // persist, so sessions are signed JWTs. `lib/workspace.ts` and every
+    // `getCurrentUserId()` caller read `session.user.id`, which the callbacks
+    // above keep populated.
+    strategy: "jwt",
   },
   trustHost: true,
   secret: process.env.NEXTAUTH_SECRET,

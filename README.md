@@ -59,7 +59,7 @@ The web app receives the webhook and serves the dashboard. A separate worker pro
 ## Quick start
 
 1. **Choose your Instagram connection.** [Zernio](docs/zernio.md) is recommended if you want to avoid setting up your own Meta app. It is a paid service and sponsor, not a hosted A Chat plan. Or follow the existing [direct Meta setup](docs/setup.md#the-meta-app).
-2. **Deploy the app and worker.** Both paths need PostgreSQL, Redis, a public HTTPS URL, and email delivery for magic-link sign-in.
+2. **Deploy the app and worker.** Both paths need PostgreSQL, Redis, and a public HTTPS URL. Sign-in is an email and a password held in the app's own database, so there is no mail provider to configure.
 3. **Connect an Instagram Business or Creator account** in Settings, create a campaign, and test a keyword comment from another account.
 
 Read [docs/setup.md](docs/setup.md) for the complete walkthrough, including a provider-aware AI assistant prompt. Existing accounts are never automatically migrated. Check [Zernio’s feature limits](docs/zernio.md#feature-availability) before choosing.
@@ -99,11 +99,11 @@ If you use Claude Code, Cursor, or a similar tool, an assistant can walk you thr
 - Next.js 16 and React 19 for the web app and API routes
 - Prisma 7 with PostgreSQL
 - BullMQ on Redis for the send queue and the worker
-- Auth.js (NextAuth) with email magic links through Resend
+- Auth.js (NextAuth) with an email and password, the password hashed with scrypt in Postgres
 - Tailwind CSS for the interface
 - The official Instagram API with Instagram Login
 
-For the complete stack — application libraries, the two runtime processes, and the free services this runs on (Vercel, Neon, Redis Cloud, an Oracle Cloud always-free VM for the worker, Resend, Meta) — see [docs/stack.md](docs/stack.md).
+For the complete stack — application libraries, the two runtime processes, and the free services this runs on (Vercel, Neon, Redis Cloud, an Oracle Cloud always-free VM for the worker, Meta) — see [docs/stack.md](docs/stack.md).
 
 ## Contributing
 

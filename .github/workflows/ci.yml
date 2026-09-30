@@ -47,8 +47,6 @@ jobs:
           NEXTAUTH_SECRET: test-secret-for-ci-build
           CRON_SECRET: test-secret-for-ci-cron
           ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
-          RESEND_API_KEY: re_test
-          EMAIL_FROM: "InstaReply <login@example.com>"
           META_GRAPH_API_VERSION: v25.0
           INSTAGRAM_APP_ID: test
           INSTAGRAM_APP_SECRET: test

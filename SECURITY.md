@@ -31,7 +31,6 @@ Never commit any of these, and rotate one if it is exposed anywhere it could be 
 
 - `DATABASE_URL`, `REDIS_URL`
 - `NEXTAUTH_SECRET`, `CRON_SECRET`, `ENCRYPTION_KEY`
-- `RESEND_API_KEY`
 - `INSTAGRAM_APP_SECRET`, `FACEBOOK_APP_SECRET`
 - Live webhook payloads that contain user data
 

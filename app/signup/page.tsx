@@ -5,17 +5,18 @@ import { DemoNotice } from "@/components/demo-notice";
 import { DemoSignInPanel } from "@/components/demo-signin-panel";
 import { isPublicDemoHost } from "@/lib/env";
 import { sanitizeRedirect } from "@/lib/auth-forms";
-import { LoginForm } from "./login-form";
+import { MIN_PASSWORD_LENGTH } from "@/lib/password";
+import { SignUpForm } from "./signup-form";
 
 export async function generateMetadata() {
   const { t } = await getI18n();
   return {
-    title: t("Login - A Chat"),
-    description: t("Sign in to manage Instagram comment-to-DM campaigns."),
+    title: t("Create account - A Chat"),
+    description: t("Create your A Chat account."),
   };
 }
 
-export default async function LoginPage({
+export default async function SignUpPage({
   searchParams,
 }: {
   searchParams: Promise<{
@@ -47,9 +48,7 @@ export default async function LoginPage({
             A Chat
           </h1>
           <p className="text-muted text-sm leading-relaxed mt-2">
-            {selectedTemplate
-              ? t("Sign in to use the {name} template.", { name: selectedTemplate.title })
-              : t("Sign in by email, then connect your Instagram professional account.")}
+            {t("Sign in by email, then connect your Instagram professional account.")}
           </p>
         </div>
 
@@ -67,20 +66,28 @@ export default async function LoginPage({
             </div>
           )}
 
-          <LoginForm
+          <h2 className="text-lg font-semibold text-foreground mb-5">
+            {t("Create your account")}
+          </h2>
+
+          <SignUpForm
             callbackUrl={callbackUrl}
+            passwordHint={t("At least {count} characters.", {
+              count: MIN_PASSWORD_LENGTH,
+            })}
             labels={{
+              name: t("Name"),
               email: t("Work email"),
               password: t("Password"),
-              signIn: t("Sign in"),
-              signInPending: t("Signing in..."),
+              createAccount: t("Create account"),
+              createAccountPending: t("Creating account..."),
             }}
           />
 
           <p className="mt-6 text-sm text-muted text-center">
-            {t("New to A Chat?")}{" "}
-            <Link href="/signup" className="text-accent hover:underline">
-              {t("Create account")}
+            {t("Already have an account?")}{" "}
+            <Link href="/login" className="text-accent hover:underline">
+              {t("Sign in")}
             </Link>
           </p>
         </div>

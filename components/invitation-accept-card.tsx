@@ -58,7 +58,7 @@ export default function InvitationAcceptCard({
       </button>
       {message && <p className="text-sm text-error">{message}</p>}
       <p className="text-xs text-muted">
-        {t("Use the magic link account for")} {invitedEmail}.
+        {t("Use the account for")} {invitedEmail}.
       </p>
     </div>
   );

@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { auth, getCurrentWorkspaceId } from "@/lib/auth";
 import { prisma } from "@/lib/db/client";
 import { canManageWorkspace } from "@/lib/workspace-access";
 
 /**
- * Revokes the stored Facebook grant and drops the discovery cache.
+ * Drops the local Facebook connection for the current workspace.
+ *
+ * This is a LOCAL-ONLY disconnect. It deliberately does not call Meta's
+ * DELETE /me/permissions revoke endpoint: revoking at Meta would immediately
+ * invalidate the Page-scoped tokens still held by the detached
+ * InstagramAccounts described below, so the grant is left intact and only the
+ * cached connection is removed.
  *
  * Deliberately does NOT delete the InstagramAccounts that were derived from
  * these Pages. InstagramAccount is referenced by automations, comments, and
@@ -22,15 +28,23 @@ export async function POST() {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  // Scope to the caller's actual current workspace. A bare findFirst on userId
+  // would pick an arbitrary membership and could disconnect a different
+  // workspace's connection than the one being viewed.
+  const workspaceId = await getCurrentWorkspaceId();
+  if (!workspaceId) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
   const membership = await prisma.workspaceMember.findFirst({
-    where: { userId: session.user.id },
+    where: { userId: session.user.id, workspaceId },
   });
   if (!membership || !canManageWorkspace(membership.role)) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
   const connection = await prisma.metaConnection.findUnique({
-    where: { workspaceId: membership.workspaceId },
+    where: { workspaceId },
   });
   if (!connection) {
     return NextResponse.json({ ok: true, alreadyDisconnected: true });

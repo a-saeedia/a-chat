@@ -79,6 +79,7 @@ model Workspace {
   dmsSentThisPeriod Int      @default(0)
 
   zernioConnection  ZernioConnection?
+  metaConnection    MetaConnection?
   members           WorkspaceMember[]
   invitations       WorkspaceInvitation[]
   instagramAccounts InstagramAccount[]
@@ -128,6 +129,68 @@ model WorkspaceInvitation {
   @@index([status])
 }
 
+/// A Facebook Login (Business Login) grant. One per workspace.
+///
+/// This holds the long-lived *user* token — the credential /me/accounts is
+/// called with. It is the single entry point for discovery, re-sync and
+/// refresh: Page- and Instagram-scoped tokens derived from it are stored on the
+/// accounts they belong to, never here. The Instagram API with Instagram
+/// Login grant in lib/meta/oauth.ts is a different product and cannot see a
+/// Page at all, which is why this row exists separately.
+model MetaConnection {
+  id          String    @id @default(cuid())
+  workspaceId String    @unique
+  /// Facebook user id of the person who authorized. The Page tokens below are
+  /// derived from *their* grant, so a different admin connecting the same Page
+  /// produces different credentials for the same asset.
+  metaUserId   String
+  displayName  String?
+  /// Encrypted with ENCRYPTION_KEY, same as InstagramAccount.accessToken.
+  accessToken  String
+  tokenExpiresAt DateTime?
+  scopes       String[]
+  connectedAt  DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  workspace Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  channels  MetaChannel[]
+
+  @@index([workspaceId])
+}
+
+/// Everything one /me/accounts call returned, whether or not the user has
+/// connected it yet.
+///
+/// This is a discovery cache, not a credential store: it exists so the
+/// Settings picker can show every Page the workspace can reach - including the
+/// ones still unticked - without a Meta round trip on each render. The usable
+/// Page/IG token lands on InstagramAccount when the user connects that channel.
+model MetaChannel {
+  id               String   @id @default(cuid())
+  metaConnectionId String
+  pageId           String
+  pageName         String
+  pictureUrl       String?
+  /// Present when the Page has a linked Instagram professional account. The
+  /// Instagram API with Instagram Login grant used by lib/meta/oauth.ts gives
+  /// us a professional account directly; Facebook Login only exposes it as a
+  /// property of the Page, so the two paths converge on one table.
+  instagramId       String?
+  instagramUsername String?
+  hasMessenger      Boolean  @default(true)
+  /// Mirrors the result of POST /{page-id}/subscribed_apps, so the UI can tell
+  /// "connected but not receiving webhooks" apart from "not connected".
+  webhooksSubscribed Boolean  @default(false)
+  discoveredAt      DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  metaConnection MetaConnection   @relation(fields: [metaConnectionId], references: [id], onDelete: Cascade)
+  accounts      InstagramAccount[]
+
+  @@unique([metaConnectionId, pageId])
+  @@index([pageId])
+}
+
 model InstagramAccount {
   id                String   @id @default(cuid())
   workspaceId       String
@@ -136,6 +199,11 @@ model InstagramAccount {
   name              String?
   provider          InstagramProvider @default(META)
   zernioAccountId   String?
+  /// The Facebook Page this account was discovered through, when it came from
+  /// a Facebook Login grant rather than a direct Instagram Login grant. Null
+  /// for direct-Instagram and Zernio connections.
+  pageId             String?
+  metaConnectionId   String?
   accessToken       String
   tokenExpiresAt    DateTime?
   webhookSubscribed Boolean  @default(false)
@@ -143,12 +211,14 @@ model InstagramAccount {
   updatedAt         DateTime @updatedAt
 
   workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  metaChannel MetaChannel? @relation(fields: [metaConnectionId, pageId], references: [metaConnectionId, pageId])
   automations Automation[]
   dmLogs      DmLog[]
   linkClicks  LinkClick[]
   followerSnapshots FollowerSnapshot[]
 
   @@index([workspaceId])
+  @@index([pageId])
 }
 
 /// Daily follower total for one account. Instagram only retains ~30 days of

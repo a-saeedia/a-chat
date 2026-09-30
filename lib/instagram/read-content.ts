@@ -26,7 +26,8 @@ export async function getRecentMediaComments({
       context.accessToken,
       mediaId,
       sinceMs,
-      max
+      max,
+      { base: context.graphBase }
     );
   const results: meta.InstagramComment[] = [];
   const seen = new Set<string>();
@@ -70,7 +71,7 @@ export async function getUserMedia({
   limit?: number;
 }): Promise<meta.InstagramMedia[]> {
   if (context.provider === "META")
-    return meta.getUserMedia(context.accessToken, limit);
+    return meta.getUserMedia(context.accessToken, limit, { base: context.graphBase });
   const result = await zernioRequest<{
     posts: {
       id: string;
@@ -116,7 +117,7 @@ export async function getAllUserMedia({
   max?: number;
 }) {
   return context.provider === "META"
-    ? meta.getAllUserMedia(context.accessToken, max)
+    ? meta.getAllUserMedia(context.accessToken, max, { base: context.graphBase })
     : getUserMedia({ context, limit: max });
 }
 
@@ -125,7 +126,7 @@ export async function getUserInfo({
 }: {
   context: InstagramContext;
 }): Promise<meta.InstagramUser> {
-  if (context.provider === "META") return meta.getUserInfo(context.accessToken);
+  if (context.provider === "META") return meta.getUserInfo(context.accessToken, { base: context.graphBase });
   const result = await zernioRequest<{
     accounts: {
       _id: string;

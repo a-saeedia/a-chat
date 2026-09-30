@@ -138,10 +138,15 @@ vi.mock("bullmq", () => {
 });
 
 import { MetaApiError, RateLimitError } from "@/lib/meta/client";
+import { getMetaGraphApiVersion } from "@/lib/env";
 import { createDMWorker } from "../lib/queue/dm-worker";
 import { getRedisConnection } from "@/lib/queue/client";
 
 const usagePeriodStart = new Date("2026-05-01T00:00:00.000Z");
+
+// Derived rather than hardcoded so a META_GRAPH_API_VERSION bump does not turn
+// into 12 unrelated failures here.
+const igGraphBase = `https://graph.instagram.com/${getMetaGraphApiVersion()}`;
 
 const mockAutomation = {
   id: "auto_789",
@@ -362,7 +367,8 @@ describe("DM Worker — Full Pipeline", () => {
       "decrypted_token",
       "ig_456",
       "comment_555",
-      "Hey commenter_user! Here is the link: https://example.com"
+      "Hey commenter_user! Here is the link: https://example.com",
+      { base: igGraphBase }
     );
     expect(mockReleaseWorkspaceDMReservation).not.toHaveBeenCalled();
     expect(mockPrisma.dmLog.update).toHaveBeenCalledWith({
@@ -555,7 +561,8 @@ describe("DM Worker — Full Pipeline", () => {
       "decrypted_token",
       "ig_456",
       "comment_555",
-      "Hey there! Here is the link: https://example.com"
+      "Hey there! Here is the link: https://example.com",
+      { base: igGraphBase }
     );
   });
 
@@ -593,7 +600,8 @@ describe("DM Worker — Full Pipeline", () => {
       [
         { title: "Get offer", url: "http://localhost:3000/r/abc123" },
         { title: "Book a call", url: "http://localhost:3000/r/def456" },
-      ]
+      ],
+      { base: igGraphBase }
     );
   });
 
@@ -626,7 +634,8 @@ describe("DM Worker — Full Pipeline", () => {
       "comment_555",
       "Follow me first commenter_user, then tap 👇",
       "I'm following ✅",
-      "followcheck:auto_789"
+      "followcheck:auto_789",
+      { base: igGraphBase }
     );
     expect(mockSendPrivateReplyWithLinkButton).not.toHaveBeenCalled();
     expect(mockSendPrivateReply).not.toHaveBeenCalled();
@@ -662,7 +671,8 @@ describe("DM Worker — Full Pipeline", () => {
       "ig_456",
       "comment_555",
       "Hey commenter_user! Here is the offer:",
-      [{ title: "Get offer", url: "http://localhost:3000/r/abc123" }]
+      [{ title: "Get offer", url: "http://localhost:3000/r/abc123" }],
+      { base: igGraphBase }
     );
   });
 
@@ -695,7 +705,8 @@ describe("DM Worker — Full Pipeline", () => {
       "comment_555",
       "Hey commenter_user, welcome!",
       "Get the link",
-      "followcheck:auto_789:open"
+      "followcheck:auto_789:open",
+      { base: igGraphBase }
     );
     // Follow status is verified on the tap, not at comment time.
     expect(mockGetUserFollowStatus).not.toHaveBeenCalled();
@@ -731,7 +742,8 @@ describe("DM Worker — Full Pipeline", () => {
       "decrypted_token",
       "ig_456",
       "commenter_999",
-      "Hey commenter_user! Here is the link: https://example.com"
+      "Hey commenter_user! Here is the link: https://example.com",
+      { base: igGraphBase }
     );
   });
 
@@ -833,7 +845,8 @@ describe("DM Worker — Full Pipeline", () => {
       "decrypted_token",
       "ig_456",
       "commenter_999",
-      "Hey commenter_user! Here is the link: https://example.com"
+      "Hey commenter_user! Here is the link: https://example.com",
+      { base: igGraphBase }
     );
   });
 
@@ -1028,7 +1041,8 @@ describe("DM Worker — DM keyword trigger", () => {
       "decrypted_token",
       "ig_456",
       "commenter_999",
-      "Hey commenter_user! Here is the link: https://example.com"
+      "Hey commenter_user! Here is the link: https://example.com",
+      { base: igGraphBase }
     );
     // Never a private reply — there is no comment to reply to.
     expect(mockSendPrivateReply).not.toHaveBeenCalled();
@@ -1113,7 +1127,8 @@ describe("DM Worker — DM keyword trigger", () => {
       "commenter_999",
       expect.any(String),
       "I'm following ✅",
-      "followcheck:auto_789"
+      "followcheck:auto_789",
+      { base: igGraphBase }
     );
     expect(mockSendDirectMessage).not.toHaveBeenCalled();
   });
@@ -1577,7 +1592,8 @@ describe("DM Worker — follow-gate re-check", () => {
       "commenter_999",
       expect.any(String),
       expect.any(String),
-      "followcheck:auto_789"
+      "followcheck:auto_789",
+      { base: igGraphBase }
     );
     expect(mockQueueAdd).not.toHaveBeenCalled();
     // Nor is it a rejection: they were never told to follow before this.
@@ -1613,7 +1629,8 @@ describe("DM Worker — follow re-check acknowledgement", () => {
       "decrypted_token",
       "ig_456",
       "commenter_999",
-      "Dame unos segundos que lo verifico"
+      "Dame unos segundos que lo verifico",
+      { base: igGraphBase }
     );
     // The re-check is still what decides; the acknowledgement only fills the wait.
     expect(mockQueueAdd).toHaveBeenCalledWith(

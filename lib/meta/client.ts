@@ -8,6 +8,22 @@ function facebookGraphBase() {
   return `https://graph.facebook.com/${getMetaGraphApiVersion()}`;
 }
 
+/**
+ * Callers may pin the Graph host per account. An account connected through
+ * Facebook Login as a Page with a linked Instagram account must be reached on
+ * graph.facebook.com with the instagram_business_account id and a Page token;
+ * one connected through Instagram Login lives on graph.instagram.com with an
+ * IGSID and an Instagram-scoped token. `resolveMessagingTarget` picks the right
+ * one â€” see lib/meta/target.ts.
+ */
+export interface GraphOpts {
+  base?: string;
+}
+
+function graphBase(opts?: GraphOpts): string {
+  return opts?.base ?? instagramGraphBase();
+}
+
 export class MetaApiError extends Error {
   constructor(
     public code: number,
@@ -53,13 +69,13 @@ interface GraphApiError {
 
 export interface InstagramUser {
   id: string;
-  // Instagram professional account ID. This — not `id` (the app-scoped ID) —
+  // Instagram professional account ID. This â€” not `id` (the app-scoped ID) â€”
   // is what appears as entry.id in webhooks and is used by the messaging API.
   user_id?: string;
   username: string;
   name?: string;
   profile_picture_url?: string;
-  // Current follower total. Point-in-time only — Instagram exposes no history
+  // Current follower total. Point-in-time only â€” Instagram exposes no history
   // for this field, so long-run trends come from FollowerSnapshot instead.
   followers_count?: number;
 }
@@ -118,7 +134,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
     const traceId = err?.fbtrace_id;
     // Without the path a Meta error is unattributable: a connect runs several
     // calls in a row that fail with the identical message. The query string is
-    // dropped on purpose — it carries the access token.
+    // dropped on purpose â€” it carries the access token.
     let path = "";
     try {
       path = ` (${new URL(response.url).pathname})`;
@@ -148,10 +164,10 @@ export async function sendPrivateReply(
   accessToken: string,
   instagramAccountId: string,
   commentId: string,
-  message: string
+  message: string, opts?: GraphOpts
 ): Promise<{ recipient_id: string; message_id: string }> {
   const response = await fetch(
-    `${instagramGraphBase()}/${instagramAccountId}/messages`,
+    `${graphBase(opts)}/${instagramAccountId}/messages`,
     {
       method: "POST",
       headers: {
@@ -169,7 +185,7 @@ export async function sendPrivateReply(
 }
 
 /**
- * Send a private reply to a comment as a button template — an opening message
+ * Send a private reply to a comment as a button template â€” an opening message
  * plus a postback button. Tapping the button opens the conversation and fires
  * a `messaging_postbacks` webhook carrying `payload`, which we use to deliver
  * the follow-up ("reveal") message.
@@ -180,10 +196,10 @@ export async function sendPrivateReplyWithButton(
   commentId: string,
   text: string,
   buttonTitle: string,
-  payload: string
+  payload: string, opts?: GraphOpts
 ): Promise<{ recipient_id: string; message_id: string }> {
   const response = await fetch(
-    `${instagramGraphBase()}/${instagramAccountId}/messages`,
+    `${graphBase(opts)}/${instagramAccountId}/messages`,
     {
       method: "POST",
       headers: {
@@ -223,10 +239,10 @@ export async function sendDirectMessageWithButton(
   userId: string,
   text: string,
   buttonTitle: string,
-  payload: string
+  payload: string, opts?: GraphOpts
 ): Promise<{ recipient_id: string; message_id: string }> {
   const response = await fetch(
-    `${instagramGraphBase()}/${instagramAccountId}/messages`,
+    `${graphBase(opts)}/${instagramAccountId}/messages`,
     {
       method: "POST",
       headers: {
@@ -258,14 +274,14 @@ export async function sendDirectMessageWithButton(
  * Check whether a user (by their IGSID) follows the business account, via the
  * Instagram Messaging profile API. Available for users in an active
  * conversation (e.g. after a private reply or a button tap). Returns true or
- * false, or `null` when Meta does not return the field — so callers can decide
+ * false, or `null` when Meta does not return the field â€” so callers can decide
  * how to treat the unverifiable case.
  */
 export async function getUserFollowStatus(
   accessToken: string,
-  recipientId: string
+  recipientId: string, opts?: GraphOpts
 ): Promise<boolean | null> {
-  const url = new URL(`${instagramGraphBase()}/${recipientId}`);
+  const url = new URL(`${graphBase(opts)}/${recipientId}`);
   url.searchParams.set("fields", "is_user_follow_business");
 
   try {
@@ -300,7 +316,7 @@ function toWebUrlButtons(buttons: LinkButton[]) {
 
 /**
  * Send a private reply to a comment as a button template with up to 3 web_url
- * buttons — the reveal message plus tappable link buttons (for campaigns with
+ * buttons â€” the reveal message plus tappable link buttons (for campaigns with
  * no opening DM, where the reveal is delivered straight to the comment).
  */
 export async function sendPrivateReplyWithLinkButton(
@@ -308,10 +324,10 @@ export async function sendPrivateReplyWithLinkButton(
   instagramAccountId: string,
   commentId: string,
   text: string,
-  buttons: LinkButton[]
+  buttons: LinkButton[], opts?: GraphOpts
 ): Promise<{ recipient_id: string; message_id: string }> {
   const response = await fetch(
-    `${instagramGraphBase()}/${instagramAccountId}/messages`,
+    `${graphBase(opts)}/${instagramAccountId}/messages`,
     {
       method: "POST",
       headers: {
@@ -345,10 +361,10 @@ export async function sendDirectMessage(
   accessToken: string,
   instagramAccountId: string,
   userId: string,
-  message: string
+  message: string, opts?: GraphOpts
 ): Promise<{ recipient_id: string; message_id: string }> {
   const response = await fetch(
-    `${instagramGraphBase()}/${instagramAccountId}/messages`,
+    `${graphBase(opts)}/${instagramAccountId}/messages`,
     {
       method: "POST",
       headers: {
@@ -366,7 +382,7 @@ export async function sendDirectMessage(
 }
 
 /**
- * Send a direct message as a button template with up to 3 web_url buttons —
+ * Send a direct message as a button template with up to 3 web_url buttons â€”
  * the reveal message plus tappable link buttons (cleaner than inline URLs).
  */
 export async function sendDirectMessageWithLinkButton(
@@ -374,10 +390,10 @@ export async function sendDirectMessageWithLinkButton(
   instagramAccountId: string,
   userId: string,
   text: string,
-  buttons: LinkButton[]
+  buttons: LinkButton[], opts?: GraphOpts
 ): Promise<{ recipient_id: string; message_id: string }> {
   const response = await fetch(
-    `${instagramGraphBase()}/${instagramAccountId}/messages`,
+    `${graphBase(opts)}/${instagramAccountId}/messages`,
     {
       method: "POST",
       headers: {
@@ -406,10 +422,10 @@ export async function sendDirectMessageWithLinkButton(
 export async function sendCommentReply(
   accessToken: string,
   commentId: string,
-  message: string
+  message: string, opts?: GraphOpts
 ): Promise<{ id: string }> {
   const response = await fetch(
-    `${instagramGraphBase()}/${commentId}/replies`,
+    `${graphBase(opts)}/${commentId}/replies`,
     {
       method: "POST",
       headers: {
@@ -425,9 +441,9 @@ export async function sendCommentReply(
 
 export async function getMediaComments(
   accessToken: string,
-  mediaId: string
+  mediaId: string, opts?: GraphOpts
 ): Promise<InstagramComment[]> {
-  const url = new URL(`${instagramGraphBase()}/${mediaId}/comments`);
+  const url = new URL(`${graphBase(opts)}/${mediaId}/comments`);
   url.searchParams.set("fields", "id,text,from,timestamp");
   url.searchParams.set("access_token", accessToken);
 
@@ -440,7 +456,7 @@ export async function getMediaComments(
  * Recent comments on a media, newest first, each with its replies so the caller
  * can tell whether the account owner has already responded. Pagination stops as
  * soon as it reaches comments older than `sinceMs` (or the `max` ceiling), so a
- * viral post's entire back-catalogue is never pulled — only what is recent
+ * viral post's entire back-catalogue is never pulled â€” only what is recent
  * enough to still act on. This is what the polling reconciler reads.
  *
  * Note: comments hidden by Instagram's Hidden Words / spam filter may not be
@@ -451,11 +467,11 @@ export async function getRecentMediaComments(
   accessToken: string,
   mediaId: string,
   sinceMs: number,
-  max = 800
+  max = 800, opts?: GraphOpts
 ): Promise<InstagramComment[]> {
   const results: InstagramComment[] = [];
 
-  const first = new URL(`${instagramGraphBase()}/${mediaId}/comments`);
+  const first = new URL(`${graphBase(opts)}/${mediaId}/comments`);
   first.searchParams.set("fields", "id,text,timestamp,from,replies{from}");
   first.searchParams.set("order", "reverse_chronological");
   first.searchParams.set("limit", "50");
@@ -518,7 +534,7 @@ export interface InstagramConversation {
  */
 export async function getConversations(
   accessToken: string,
-  igUserId: string
+  igUserId: string, opts?: GraphOpts
 ): Promise<InstagramConversation[]> {
   const fields =
     "participants,updated_time,messages.limit(1){message,from,created_time}";
@@ -535,7 +551,7 @@ export async function getConversations(
   async function readPage(limit: number, requestedFields: string): Promise<Page> {
     // Never follow Meta's next URL: rebuild on our trusted host and carry the
     // token separately. A messages.paging cursor must never advance this list.
-    const url = new URL(`${instagramGraphBase()}/${igUserId}/conversations`);
+    const url = new URL(`${graphBase(opts)}/${igUserId}/conversations`);
     url.searchParams.set("platform", "instagram");
     url.searchParams.set("fields", requestedFields);
     url.searchParams.set("limit", String(limit));
@@ -603,9 +619,9 @@ export async function getConversations(
  */
 export async function getConversationMessages(
   accessToken: string,
-  conversationId: string
+  conversationId: string, opts?: GraphOpts
 ): Promise<InstagramMessage[]> {
-  const url = new URL(`${instagramGraphBase()}/${conversationId}`);
+  const url = new URL(`${graphBase(opts)}/${conversationId}`);
   url.searchParams.set("fields", "messages{id,created_time,from,to,message}");
   url.searchParams.set("access_token", accessToken);
 
@@ -616,8 +632,8 @@ export async function getConversationMessages(
   return data.messages?.data ?? [];
 }
 
-export async function getUserInfo(accessToken: string): Promise<InstagramUser> {
-  const url = new URL(`${instagramGraphBase()}/me`);
+export async function getUserInfo(accessToken: string, opts?: GraphOpts): Promise<InstagramUser> {
+  const url = new URL(`${graphBase(opts)}/me`);
   url.searchParams.set(
     "fields",
     "id,user_id,username,name,profile_picture_url,followers_count"
@@ -636,9 +652,9 @@ const MEDIA_PAGE_SIZE = 100;
 
 export async function getUserMedia(
   accessToken: string,
-  limit = 25
+  limit = 25, opts?: GraphOpts
 ): Promise<InstagramMedia[]> {
-  const url = new URL(`${instagramGraphBase()}/me/media`);
+  const url = new URL(`${graphBase(opts)}/me/media`);
   url.searchParams.set("fields", MEDIA_FIELDS);
   url.searchParams.set("limit", limit.toString());
   url.searchParams.set("access_token", accessToken);
@@ -656,11 +672,11 @@ export async function getUserMedia(
  */
 export async function getAllUserMedia(
   accessToken: string,
-  max = 500
+  max = 500, opts?: GraphOpts
 ): Promise<InstagramMedia[]> {
   const results: InstagramMedia[] = [];
 
-  const first = new URL(`${instagramGraphBase()}/me/media`);
+  const first = new URL(`${graphBase(opts)}/me/media`);
   first.searchParams.set("fields", MEDIA_FIELDS);
   first.searchParams.set("limit", String(Math.min(MEDIA_PAGE_SIZE, max)));
   first.searchParams.set("access_token", accessToken);
@@ -683,7 +699,7 @@ export async function getAllUserMedia(
 /**
  * Fetch per-media insight metrics (views, reach, saved, shares, etc.).
  *
- * Requires the `instagram_business_manage_insights` permission — accounts
+ * Requires the `instagram_business_manage_insights` permission â€” accounts
  * connected before that scope was requested will throw a PermissionError.
  * Metric validity varies by media type, so pass only metrics that apply to
  * the given media (e.g. `views` is not valid for image posts on some accounts).
@@ -691,9 +707,9 @@ export async function getAllUserMedia(
 export async function getMediaInsights(
   accessToken: string,
   mediaId: string,
-  metrics: string[]
+  metrics: string[], opts?: GraphOpts
 ): Promise<InstagramMediaInsights> {
-  const url = new URL(`${instagramGraphBase()}/${mediaId}/insights`);
+  const url = new URL(`${graphBase(opts)}/${mediaId}/insights`);
   url.searchParams.set("metric", metrics.join(","));
   url.searchParams.set("access_token", accessToken);
 
@@ -728,7 +744,7 @@ const FOLLOWER_INSIGHT_MAX_DAYS = 30;
  * Requires `instagram_business_manage_insights`. Note this metric is *not*
  * universally available: Instagram omits it for accounts under 100 followers
  * and it is unsupported on some account types. Callers must treat `null` as
- * "no series available" rather than an error — see the backfill in
+ * "no series available" rather than an error â€” see the backfill in
  * `lib/reports/follower-history.ts`.
  *
  * Returns daily deltas, not running totals. Reconstruct absolute counts by
@@ -737,13 +753,13 @@ const FOLLOWER_INSIGHT_MAX_DAYS = 30;
 export async function getFollowerCountSeries(
   accessToken: string,
   instagramAccountId: string,
-  days: number = FOLLOWER_INSIGHT_MAX_DAYS
+  days: number = FOLLOWER_INSIGHT_MAX_DAYS, opts?: GraphOpts
 ): Promise<FollowerCountPoint[] | null> {
   const span = Math.min(Math.max(days, 1), FOLLOWER_INSIGHT_MAX_DAYS);
   const until = Math.floor(Date.now() / 1000);
   const since = until - (span - 1) * 86_400;
 
-  const url = new URL(`${instagramGraphBase()}/${instagramAccountId}/insights`);
+  const url = new URL(`${graphBase(opts)}/${instagramAccountId}/insights`);
   url.searchParams.set("metric", "follower_count");
   url.searchParams.set("period", "day");
   url.searchParams.set("since", String(since));

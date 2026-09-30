@@ -6,6 +6,8 @@ import { Suspense, useEffect, useState } from "react";
 import type { AccountOption } from "@/components/account-select";
 import { ZernioConnection } from "@/components/zernio-connection";
 import { InstagramConnectNotice } from "@/components/instagram-connect-notice";
+import { MetaConnectNotice } from "@/components/meta-connect-notice";
+import { MetaConnection } from "@/components/meta-connection";
 
 interface SettingsData {
   workspace: {
@@ -139,6 +141,9 @@ export default function SettingsPage() {
           page fails the production build without one. */}
       <Suspense fallback={null}>
         <InstagramConnectNotice />
+        <div className="mt-4">
+          <MetaConnectNotice />
+        </div>
       </Suspense>
 
       <section className="panel rounded p-4 sm:p-6 space-y-3">
@@ -148,6 +153,7 @@ export default function SettingsPage() {
       </section>
 
       <ZernioConnection canManage={canManageMembers} />
+      <MetaConnection canManage={canManageMembers} />
 
       <section className="panel rounded p-4 sm:p-6">
         <h2 className="text-base font-semibold mb-6">{t("Instagram Connection")}</h2>

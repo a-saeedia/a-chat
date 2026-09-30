@@ -91,7 +91,8 @@ export async function sendPrivateReply({
       context.accessToken,
       instagramAccountId,
       commentId,
-      message
+      message,
+      { base: context.graphBase }
     );
   return sendZernioMessage({ context, commentId, postId, text: message });
 }
@@ -120,7 +121,8 @@ export async function sendPrivateReplyWithButton({
       commentId,
       text,
       buttonTitle,
-      payload
+      payload,
+      { base: context.graphBase }
     );
   return sendZernioMessage({
     context,
@@ -153,7 +155,8 @@ export async function sendDirectMessageWithButton({
       userId,
       text,
       buttonTitle,
-      payload
+      payload,
+      { base: context.graphBase }
     );
   return sendZernioMessage({
     context,
@@ -184,7 +187,8 @@ export async function sendPrivateReplyWithLinkButton({
       instagramAccountId,
       commentId,
       text,
-      buttons
+      buttons,
+      { base: context.graphBase }
     );
   return sendZernioMessage({
     context,
@@ -211,7 +215,8 @@ export async function sendDirectMessage({
       context.accessToken,
       instagramAccountId,
       userId,
-      message
+      message,
+      { base: context.graphBase }
     );
   return sendZernioMessage({ context, recipientId: userId, text: message });
 }
@@ -235,7 +240,8 @@ export async function sendDirectMessageWithLinkButton({
       instagramAccountId,
       userId,
       text,
-      buttons
+      buttons,
+      { base: context.graphBase }
     );
   return sendZernioMessage({
     context,
@@ -257,7 +263,7 @@ export async function sendCommentReply({
   postId?: string;
 }) {
   if (context.provider === "META")
-    return meta.sendCommentReply(context.accessToken, commentId, message);
+    return meta.sendCommentReply(context.accessToken, commentId, message, { base: context.graphBase });
   const result = await zernioRequest<{ data: { commentId: string } }>({
     apiKey: context.apiKey,
     path: `/inbox/comments/${encodeURIComponent(postId ?? commentId)}`,

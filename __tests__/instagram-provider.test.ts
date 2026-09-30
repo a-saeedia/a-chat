@@ -44,6 +44,7 @@ describe("Instagram provider boundary", () => {
         zernioAccountId: "selected",
         instagramId: "ig",
         accessToken: "",
+        pageId: null,
       })
     ).toEqual({ ...context, apiKey: "decrypted:encrypted" });
     expect(prisma.zernioConnection.findUnique).toHaveBeenCalledWith({
@@ -122,11 +123,30 @@ describe("Instagram provider boundary", () => {
     respond({ data: [{ id: "media" }] });
     expect(
       await getUserMedia({
-        context: { provider: "META", accessToken: "meta" },
+        context: {
+          provider: "META",
+          accessToken: "meta",
+          graphBase: "https://graph.instagram.com/v25.0",
+        },
         limit: 3,
       })
     ).toEqual([{ id: "media" }]);
     expect(fetchMock.mock.calls[0][0]).toContain("graph.instagram.com");
+  });
+
+  it("routes Page-linked accounts to graph.facebook.com", async () => {
+    respond({ data: [{ id: "media" }] });
+    expect(
+      await getUserMedia({
+        context: {
+          provider: "META",
+          accessToken: "page-token",
+          graphBase: "https://graph.facebook.com/v25.0",
+        },
+        limit: 3,
+      })
+    ).toEqual([{ id: "media" }]);
+    expect(fetchMock.mock.calls[0][0]).toContain("graph.facebook.com");
   });
   it.each([
     [429, RateLimitError],
